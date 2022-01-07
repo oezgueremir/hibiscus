@@ -354,7 +354,9 @@ public class PassportHandleImpl extends UnicastRemoteObject implements PassportH
       case HBCICallback.NEED_PT_QRTAN:
       {
         Logger.debug("got QR tan code, using qrtan dialog");
-        final QRCode code = new QRCode(retData.toString(),msg);
+        String pngString = retData.toString();
+
+        final QRCode code = new QRCode(pngString,msg);
         TANDialog dialog = new PhotoTANDialog(config,code.getImage());
         dialog.setContext(this.getContext(passport));
         dialog.setText(code.getMessage());
@@ -372,6 +374,27 @@ public class PassportHandleImpl extends UnicastRemoteObject implements PassportH
           Logger.debug("got flicker code " + flicker);
           // Wir haben einen Flicker-Code. Also zeigen wir den Flicker-Dialog statt
           // dem normalen TAN-Dialog an
+
+          // Oezguer Emir: Erzeuge QR Code nach Spezifikation
+          if (true)
+          {
+            try
+            {
+              StringBuffer dummyData = new StringBuffer(flicker);
+              QRDataFromFlickerData.MakeQRDataFromFlickerData(dummyData);
+              retData.replace(0, retData.length(), dummyData.toString());
+              return callback(passport, HBCICallback.NEED_PT_QRTAN, msg, datatype, retData);
+            }
+            catch (OperationCanceledException oce)
+            {
+              throw oce;
+            }
+            catch (Exception e)
+            {
+              Logger.error("unable create QR Code", e);
+            }
+          }
+
           Logger.info("using chiptan OPTIC/USB");
           dialog = new ChipTANDialog(config,flicker);
         }
