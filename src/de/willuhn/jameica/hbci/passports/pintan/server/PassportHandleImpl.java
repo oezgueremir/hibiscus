@@ -46,6 +46,7 @@ import de.willuhn.jameica.messaging.StatusBarMessage;
 import de.willuhn.jameica.plugin.AbstractPlugin;
 import de.willuhn.jameica.system.Application;
 import de.willuhn.jameica.system.OperationCanceledException;
+import de.willuhn.logging.Level;
 import de.willuhn.logging.Logger;
 import de.willuhn.util.ApplicationException;
 import de.willuhn.util.I18N;
@@ -376,7 +377,7 @@ public class PassportHandleImpl extends UnicastRemoteObject implements PassportH
           // dem normalen TAN-Dialog an
 
           // Oezguer Emir: Erzeuge QR Code nach Spezifikation
-          if (true)
+          if (doConvertFlickerCode())
           {
             try
             {
@@ -504,6 +505,51 @@ public class PassportHandleImpl extends UnicastRemoteObject implements PassportH
     }
     
     return null;
+  }
+
+  /**
+   * Findet heraus, ob alle Vorbedingungen fuer die Ausfuehrung des Flicker-Code Konverters erfuellt sind.
+   * @throws RemoteException
+   */
+  private boolean doConvertFlickerCode() throws RemoteException
+  {
+    // Checken, ob wir chipTAN optisch ausgewaehlt haben
+    PtSecMech mech = config != null ? config.getCurrentSecMech() : null;
+    if (mech == null || !mech.isFlickerCode())
+      return false; // brauchen wir gar nicht weiter ueberlegen
+    
+    // Checken, ob der User schon entschieden hatte, dass er den Konverter NICHT nutzen moechte
+    Boolean use = config != null ? config.getConvertFlickerToQRCode() : null;
+    if (use != null && !use.booleanValue())
+      return false; // User hat explizit entschieden, den Konverter NICHT zu nutzen
+
+    try
+    {
+      if (this.config != null)
+      {
+        Logger.info("converter to be used: " + (use != null ? use : "<asking user>"));
+        
+        // User hat explizit entschieden, den Konverter zu nutzen.
+        if (use != null && use.booleanValue())
+        {
+          return use.booleanValue();
+        }
+        
+        // User fragen, ob er den Konverter einsetzen moechte, wenn wir das noch nicht getan haben
+        // Das Speichern der Antwort koennen wir nicht Jameica selbst ueberlassen, weil
+        // die Entscheidung ja pro PIN/TAN-Config gelten soll und nicht global.
+        boolean convertFlicker = Application.getCallback().askUser(i18n.tr("Soll der Flicker-Code automatisch als QR-Code angezeigt werden?"),false);
+        this.config.setConvertFlickerToQRCode(convertFlicker);
+        return convertFlicker;
+      }
+    }
+    catch (Throwable t)
+    {
+      Logger.info("converter is not to be used: " + t.getMessage());
+      Logger.write(Level.DEBUG,"stacktrace for debugging purpose",t);
+    }
+    
+    return false;
   }
 
 }

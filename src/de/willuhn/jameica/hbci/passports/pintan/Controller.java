@@ -84,6 +84,7 @@ public class Controller extends AbstractControl
   private CheckboxInput showTan   = null;
   private SelectInput cardReaders = null;
   private CheckboxInput useUsb    = null;
+  private CheckboxInput useFlickerConverter    = null;
 
   // BUGZILLA 173
   private TablePart kontoList   = null;
@@ -336,6 +337,55 @@ public class Controller extends AbstractControl
 
     this.useUsb.addListener(l);
     return this.useUsb;
+  }
+
+  /**
+   * Liefert eine Checkbox, mit der eingestellt werden kann, ob aus dem Flicker-Code ein QR-Code erzeugt werden soll.
+   * @return eine Checkbox, mit der eingestellt werden kann, ob aus dem Flicker-Code ein QR-Code erzeugt werden soll.
+   * @throws RemoteException
+   */
+  public CheckboxInput getConvertFlickerToQRCode() throws RemoteException
+  {
+    if (this.useFlickerConverter != null)
+      return this.useFlickerConverter;
+    
+    final Boolean b = this.getConfig().getConvertFlickerToQRCode();
+    this.useFlickerConverter = new CheckboxInput(b == null || b.booleanValue());
+    this.useFlickerConverter.setName(i18n.tr("Erzeuge QR-Code aus Flicker-Code"));
+    
+    final Listener l = new Listener() {
+      
+      @Override
+      public void handleEvent(Event event)
+      {
+        try
+        {
+          Boolean newValue = (Boolean) getConvertFlickerToQRCode().getValue();
+          
+          if (event != null && event.type == SWT.Selection)
+          {
+            // Wir kamen aus dem Gray-State. Der User hat entschieden
+            org.eclipse.swt.widgets.Button bt = (org.eclipse.swt.widgets.Button) useFlickerConverter.getControl();
+            if (bt.getGrayed())
+            {
+              bt.setGrayed(false);
+              bt.setSelection(true);
+              newValue = Boolean.TRUE;
+            }
+          }
+        }
+        catch (RemoteException re)
+        {
+          Logger.error("error while updating cardreader field",re);
+        }
+      }
+    };
+    
+    // einmal initial ausloesen
+    l.handleEvent(null);
+
+    this.useFlickerConverter.addListener(l);
+    return this.useFlickerConverter;
   }
 
   /**
@@ -644,23 +694,45 @@ public class Controller extends AbstractControl
 			config.setCardReader((String) getCardReaders().getValue());
 
       PtSecMech secMech = config.getCurrentSecMech();
-      if (secMech != null && secMech.useUSB())
+      if (secMech != null)
       {
-        CheckboxInput check = this.getChipTANUSB();
-        try
+        if (secMech.useUSB())
         {
-          Button button = (Button)check.getControl();
-          if (button != null && !button.isDisposed())
+          CheckboxInput check = this.getChipTANUSB();
+          try
           {
-            boolean gray = button.getGrayed();
-            config.setChipTANUSB((Boolean) (gray ? null : check.getValue()));
+            Button button = (Button)check.getControl();
+            if (button != null && !button.isDisposed())
+            {
+              boolean gray = button.getGrayed();
+              config.setChipTANUSB((Boolean) (gray ? null : check.getValue()));
+            }
+          }
+          catch (IllegalArgumentException e)
+          {
+            // Das kann passieren, wenn der Bankzugang ganz neu eingerichtet wurde. Dann fehlt die Checkbox
+            // noch. Daher tolerieren wir den Fehler
           }
         }
-        catch (IllegalArgumentException e)
+        
+        if (secMech.isFlickerCode())
         {
-          // Das kann passieren, wenn der Bankzugang ganz neu eingerichtet wurde. Dann fehlt die Checkbox
-          // noch. Daher tolerieren wir den Fehler
-        }
+          CheckboxInput check = this.getConvertFlickerToQRCode();
+          try
+          {
+            Button button = (Button)check.getControl();
+            if (button != null && !button.isDisposed())
+            {
+              boolean gray = button.getGrayed();
+              config.setConvertFlickerToQRCode((Boolean) (gray ? null : check.getValue()));
+            }
+          }
+          catch (IllegalArgumentException e)
+          {
+            // Das kann passieren, wenn der Bankzugang ganz neu eingerichtet wurde. Dann fehlt die Checkbox
+            // noch. Daher tolerieren wir den Fehler
+          }
+        }        
       }
 
 			

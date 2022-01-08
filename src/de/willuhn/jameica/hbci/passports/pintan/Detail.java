@@ -67,19 +67,37 @@ public class Detail extends AbstractView
       group.addCheckbox(control.getShowTan(),i18n.tr("TANs während der Eingabe anzeigen"));
 
       PtSecMech secMech = control.getConfig().getCurrentSecMech();
-      if (secMech != null && secMech.useUSB())
+      if (secMech != null)
       {
-        group.addHeadline(i18n.tr("ChipTAN USB"));
-        
-        CheckboxInput check = control.getChipTANUSB();
-        group.addInput(check);
-        group.addInput(control.getCardReaders());
-        
-        // Wenn der User die Entscheidung noch nicht getroffen hat, dann ausgrauen
-        if (control.getConfig().isChipTANUSB() == null)
+        if(secMech.useUSB())
         {
-          org.eclipse.swt.widgets.Button b = (org.eclipse.swt.widgets.Button) check.getControl();
-          b.setGrayed(true);
+          group.addHeadline(i18n.tr("ChipTAN USB"));
+          
+          CheckboxInput check = control.getChipTANUSB();
+          group.addInput(check);
+          group.addInput(control.getCardReaders());
+          
+          // Wenn der User die Entscheidung noch nicht getroffen hat, dann ausgrauen
+          if (control.getConfig().isChipTANUSB() == null)
+          {
+            org.eclipse.swt.widgets.Button b = (org.eclipse.swt.widgets.Button) check.getControl();
+            b.setGrayed(true);
+          }
+        }
+        
+        if(secMech.isFlickerCode())
+        {
+          group.addHeadline(i18n.tr("Flicker-Code Konverter"));
+          
+          CheckboxInput check = control.getConvertFlickerToQRCode();
+          group.addInput(check);
+          
+          // Wenn der User die Entscheidung noch nicht getroffen hat, dann ausgrauen
+          if (control.getConfig().getConvertFlickerToQRCode() == null)
+          {
+            org.eclipse.swt.widgets.Button b = (org.eclipse.swt.widgets.Button) check.getControl();
+            b.setGrayed(true);
+          }
         }
       }
     }

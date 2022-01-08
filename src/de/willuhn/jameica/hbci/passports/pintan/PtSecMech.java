@@ -190,7 +190,23 @@ public class PtSecMech
            s.contains("komfort") ||
            s.contains("comfort");
   }
+
+  /**
+   * Liefert true, wenn es sich um ein Flicker-Code Verfahren handelt.
+   * @return true, wenn es sich um ein Flicker-Code Verfahren handelt.
+   */
+  public boolean isFlickerCode()
+  {
+    if (this.name == null)
+      return false;
+    
+    String s = this.name.toLowerCase();
+    return s.contains("optic") ||
+           s.contains("optisch") ||
+           s.contains("flicker");
+  }
   
+
   /**
    * @see java.lang.Object#toString()
    */
